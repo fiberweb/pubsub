@@ -30,9 +30,7 @@ type Config struct {
 func New(config ...Config) func(*fiber.Ctx) {
 	var cfg Config
 	if len(config) == 0 {
-		cfg = Config{
-			Debug: true,
-		}
+		cfg = Config{Debug: true}
 	} else {
 		cfg = config[0]
 	}
