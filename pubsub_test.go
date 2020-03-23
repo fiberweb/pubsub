@@ -34,15 +34,34 @@ func Test_UnmarshalMessageError(t *testing.T) {
 }
 
 func Test_LocalsData(t *testing.T) {
-	req, _ := http.NewRequest("POST", "/", strings.NewReader(`{"message": {"data": "aGVsbG8="}}`)) // aGVsbG8= = base64 of `hello`
+	payload := `{
+		"message": {
+			"attributes": {
+			  "attr": "attr"
+			},
+			"data": "aGVsbG8=",
+			"messageId": "1059130155449808",
+			"message_id": "1059130155449808",
+			"publishTime": "2020-03-22T01:42:29.391Z",
+			"publish_time": "2020-03-22T01:42:29.391Z"
+		  },
+		  "subscription": "projects/test-project/subscriptions/test-sub"
+	}`
+	req, _ := http.NewRequest("POST", "/", strings.NewReader(payload)) // aGVsbG8= = base64 of `hello`
 	req.Header.Set("Content-Length", strconv.FormatInt(req.ContentLength, 10))
 
 	app := fiber.New()
 	app.Use(New(Config{Debug: false}))
 	app.Post("/", func(c *fiber.Ctx) {
-		data := c.Locals("PubSubData").([]byte)
-		if "hello" != string(data) {
-			t.Errorf("PubSub data should be `hello` not `%s`", string(data))
+		msg := c.Locals(LocalsKey).(*Message)
+		if "hello" != string(msg.Message.Data) {
+			t.Errorf("PubSub data should be `hello` not `%s`", string(msg.Message.Data))
+		}
+		if "1059130155449808" != msg.Message.ID {
+			t.Error("Wrong message ID received")
+		}
+		if "2020-03-22T01:42:29.391Z" != msg.Message.PublishTime {
+			t.Error("Wrong publish time received")
 		}
 		c.SendStatus(http.StatusOK)
 	})
@@ -61,7 +80,7 @@ func Test_Skip(t *testing.T) {
 		},
 	}))
 	app.Post("/", func(c *fiber.Ctx) {
-		data := c.Locals("PubSubData")
+		data := c.Locals(LocalsKey)
 		if data != nil {
 			t.Error("skip should not set Locals")
 		}

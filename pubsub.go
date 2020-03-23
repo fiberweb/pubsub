@@ -9,11 +9,16 @@ import (
 	"github.com/gofiber/fiber"
 )
 
-// pubsubMessage is a format of the pubsub payload
-type pubsubMessage struct {
+// LocalsKey is Fiber Locals key that you should use to get PubSubMessage
+const LocalsKey = "PubSubMessage"
+
+// Message is a format of the pubsub payload
+type Message struct {
 	Message struct {
-		Data []byte `json:"data"`
-		ID   string `json:"id"`
+		ID          string                 `json:"message_id"`
+		Data        []byte                 `json:"data"`
+		Attributes  map[string]interface{} `json:"attributes"`
+		PublishTime string                 `json:"publish_time"`
 	} `json:"message"`
 	Subscription string `json:"subscription"`
 }
@@ -47,15 +52,18 @@ func New(config ...Config) func(*fiber.Ctx) {
 			return
 		}
 		// unmarshal PubSub message
-		var msg *pubsubMessage
+		var msg *Message
 		err := json.Unmarshal([]byte(c.Body()), &msg)
 		if err != nil {
 			println(cfg, fmt.Sprintf("PubSub middleware error: %s", err))
 			c.SendStatus(http.StatusBadRequest)
 			return
 		}
-		println(cfg, fmt.Sprintf("PubSub data: %s, msgId: %s, subId: %s", string(msg.Message.Data), msg.Message.ID, msg.Subscription))
-		c.Locals("PubSubData", msg.Message.Data)
+		println(cfg, fmt.Sprintf(
+			"PubSub data: %s, msgId: %s, subId: %s, attrs: %v",
+			string(msg.Message.Data), msg.Message.ID, msg.Subscription, msg.Message.Attributes),
+		)
+		c.Locals(LocalsKey, msg)
 		c.Next()
 	}
 }
