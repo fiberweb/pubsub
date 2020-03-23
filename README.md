@@ -32,10 +32,10 @@ func main() {
   // use the middleware
   app.Use(pubsub.New())
   app.Post("/", func(c *fiber.Ctx) {
-    data := c.Locals("PubSubData").([]byte) // data is a []byte
+    msg := c.Locals(pubsub.LocalsKey).(*pubsub.Message)
     
     var user User
-    if err := json.Unmarshal(data, &user); err != nil {
+    if err := json.Unmarshal(msg.Message.Data, &user); err != nil {
       c.SendStatus(400)
       return
     }
@@ -47,7 +47,7 @@ func main() {
 }
 ```
 
-When the middleware successfully decode the message, PubSub data will be available for the next handlers inside the Fiber context `Locals` called `PubSubData`.
+When the middleware successfully decode the message, PubSub data will be available for the next handlers inside the Fiber context `Locals` called `PubSubMessage`.
 
 ## Configuration
 You could also initialize the middleware with a config:
